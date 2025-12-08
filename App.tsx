@@ -84,8 +84,7 @@ const App: React.FC = () => {
                 Intelligent Stock Analysis
             </h1>
             <p className="text-lg text-slate-400 max-w-2xl">
-                Get instant Fundamental and Technical insights for Indian stocks powered by AI. 
-                Data grounded in sources like <span className="text-blue-400 font-medium">Screener.in</span>.
+                Get instant Fundamental and Technical insights for Indian stocks
             </p>
         </div>
 
