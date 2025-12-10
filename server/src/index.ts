@@ -1,0 +1,65 @@
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import dotenv from 'dotenv';
+import { analyzeStock } from './services/geminiService.js';
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// Security middleware
+app.use(helmet());
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000', 'http://localhost:5173', 'capacitor://localhost'],
+  credentials: true
+}));
+app.use(express.json());
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.'
+});
+app.use('/api/', limiter);
+
+// Health check
+app.get('/health', (req: express.Request, res: express.Response) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Stock analysis endpoint
+app.post('/api/analyze', async (req: express.Request, res: express.Response) => {
+  try {
+    const { symbol, analysisType } = req.body;
+
+    if (!symbol || !analysisType) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: symbol and analysisType' 
+      });
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({ 
+        error: 'Server configuration error: API key not set' 
+      });
+    }
+
+    const result = await analyzeStock(symbol, analysisType);
+    res.json(result);
+  } catch (error: any) {
+    console.error('Analysis error:', error);
+    res.status(500).json({ 
+      error: error.message || 'Failed to generate analysis' 
+    });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`🚀 Backend server running on port ${PORT}`);
+  console.log(`📊 Health check: http://localhost:${PORT}/health`);
+});
+

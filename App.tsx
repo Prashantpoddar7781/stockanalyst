@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import StockSelector from './components/StockSelector';
 import AnalysisView from './components/AnalysisView';
 import { Stock, AnalysisType, AnalysisResult } from './types';
-import { analyzeStock } from './services/geminiService';
+import { analyzeStock } from './services/apiService';
 import { TrendingUp, BarChart3, LineChart } from 'lucide-react';
 
 const App: React.FC = () => {
