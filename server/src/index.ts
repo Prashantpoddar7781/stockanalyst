@@ -13,8 +13,11 @@ const PORT = process.env.PORT || 3001;
 // Trust proxy - required for Railway/reverse proxy deployments
 app.set('trust proxy', 1);
 
-// Security middleware
-app.use(helmet());
+// Security middleware - configure for mobile apps
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginEmbedderPolicy: false
+}));
 
 // CORS configuration - allow Vercel preview URLs and localhost
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
@@ -26,7 +29,10 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, Postman, etc.)
-    if (!origin) return callback(null, true);
+    // This is critical for Capacitor apps which may not send an origin header
+    if (!origin) {
+      return callback(null, true);
+    }
     
     // Check if origin is in allowed list
     if (allowedOrigins.some(allowed => origin === allowed)) {
@@ -38,9 +44,22 @@ app.use(cors({
       return callback(null, true);
     }
     
+    // Allow Capacitor/ionic origins (mobile apps)
+    if (origin.startsWith('capacitor://') || origin.startsWith('ionic://') || origin.startsWith('http://localhost') || origin.startsWith('https://localhost')) {
+      return callback(null, true);
+    }
+    
+    // Allow file:// origins (some mobile app scenarios)
+    if (origin.startsWith('file://')) {
+      return callback(null, true);
+    }
+    
+    // Reject unknown origins
     callback(new Error('Not allowed by CORS'));
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 app.use(express.json());
 
