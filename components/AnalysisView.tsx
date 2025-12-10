@@ -107,7 +107,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({
                             return (
                                 <tr key={rIdx} className={isHeader ? "bg-slate-800 text-slate-200 font-semibold" : "border-t border-slate-700/50 text-slate-300 hover:bg-slate-800/30"}>
                                     {cells.map((cell, cIdx) => (
-                                        <td key={cIdx} className="p-3 whitespace-pre-wrap">{parseBold(cell.trim())}</td>
+                                        <td key={cIdx} className="p-3 whitespace-pre-wrap min-w-[120px]">{parseBold(cell.trim())}</td>
                                     ))}
                                 </tr>
                             )
@@ -140,9 +140,14 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({
         // Special highlighting for Fundamental Score
         if (content.includes('Score:')) {
             elements.push(
-                <div key={i} className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 my-6 flex items-center gap-3">
-                    <Trophy className="w-8 h-8 text-yellow-400 flex-shrink-0" />
-                    <h3 className="text-xl font-bold text-white">{content}</h3>
+                <div key={i} className="bg-gradient-to-r from-blue-900/40 to-slate-900 border border-blue-500/30 rounded-xl p-5 my-8 flex items-center gap-4 shadow-lg">
+                    <div className="bg-yellow-500/10 p-3 rounded-full">
+                        <Trophy className="w-8 h-8 text-yellow-400 flex-shrink-0" />
+                    </div>
+                    <div>
+                        <h3 className="text-2xl font-bold text-white">{content}</h3>
+                        <p className="text-slate-400 text-sm mt-1">Based on 32-factor analysis benchmarks</p>
+                    </div>
                 </div>
             );
             return;
@@ -168,15 +173,20 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({
             }
 
             elements.push(
-                <div key={i} className={`border rounded-lg p-4 my-6 flex items-center gap-3 ${bgClass}`}>
-                    <Icon className={`w-8 h-8 ${colorClass} flex-shrink-0`} />
-                    <h3 className="text-xl font-bold text-white">{content}</h3>
+                <div key={i} className={`border rounded-xl p-5 my-6 flex items-center gap-4 ${bgClass}`}>
+                     <div className="bg-slate-900/30 p-3 rounded-full">
+                        <Icon className={`w-8 h-8 ${colorClass} flex-shrink-0`} />
+                     </div>
+                    <div>
+                        <h3 className="text-2xl font-bold text-white">{content}</h3>
+                        <p className="text-slate-400 text-sm mt-1">Short to Medium Term Trend</p>
+                    </div>
                 </div>
             );
             return;
         }
 
-        elements.push(<h3 key={i} className="text-xl font-bold text-blue-400 mt-8 mb-4">{content}</h3>);
+        elements.push(<h3 key={i} className="text-xl font-bold text-blue-400 mt-8 mb-4 flex items-center gap-2">{content}</h3>);
         return;
       }
       
@@ -194,8 +204,8 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({
       if (line.trim().startsWith('- ')) {
          elements.push(
              <div key={i} className="flex gap-2 mb-2 ml-2 text-slate-300">
-                <span className="text-blue-500 font-bold">•</span>
-                <span>{parseBold(line.replace('- ', ''))}</span>
+                <span className="text-blue-500 font-bold mt-1.5 text-xs">●</span>
+                <span className="leading-relaxed">{parseBold(line.replace('- ', ''))}</span>
              </div>
          );
          return;
@@ -203,7 +213,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({
       
       // Paragraphs (empty lines are spacers)
       if (line.trim() === '') {
-          elements.push(<div key={i} className="h-2"></div>);
+          elements.push(<div key={i} className="h-3"></div>);
           return;
       }
 
@@ -222,11 +232,30 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({
 
   const parseBold = (text: string) => {
     if (!text) return text;
+    // Check for "Sector Classification:" special case
+    if (text.includes('Sector Classification:')) {
+         const parts = text.split('Sector Classification:');
+         return (
+             <span>
+                 <span className="text-slate-400">Sector Classification:</span>
+                 <span className="text-blue-400 font-bold ml-2 text-lg">{parts[1]}</span>
+             </span>
+         )
+    }
+
     const parts = text.split(/(\*\*.*?\*\*)/g);
     return parts.map((part, index) => {
       if (part.startsWith('**') && part.endsWith('**')) {
         return <strong key={index} className="text-white font-semibold">{part.slice(2, -2)}</strong>;
       }
+      // Check for PASS/FAIL
+      if (part.includes('✅ PASS')) {
+           return <span key={index} className="text-green-400 font-bold">✅ PASS</span>;
+      }
+      if (part.includes('❌ FAIL')) {
+           return <span key={index} className="text-red-400 font-bold">❌ FAIL</span>;
+      }
+      
       return part;
     });
   };

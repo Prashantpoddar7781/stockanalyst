@@ -20,8 +20,9 @@ export const analyzeStock = async (
   
   CRITICAL DATA SOURCE INSTRUCTION:
   - You MUST use the 'googleSearch' tool to find real-time data. 
-  - Specifically search for data from 'screener.in', 'moneycontrol.com', or 'nseindia.com'.
-  - Do not hallucinate data. If you cannot find specific metrics, state that the data is currently unavailable.
+  - **PRIMARY SOURCE**: Search specifically for "${stockSymbol} financial ratios screener.in" or "${stockSymbol} consolidated ratios moneycontrol".
+  - **DERIVE DATA**: If a specific metric (e.g., "Receivable Days") is not explicitly found, TRY TO CALCULATE it from available data (e.g., 365 / Receivable Turnover) or look for synonyms.
+  - **AVOID N/A**: Do not output 'N/A' unless the data is absolutely impossible to find or calculate. Make a reasonable estimate if possible and note it.
   
   ${isFundamental ? `
   FUNDAMENTAL ANALYSIS LOGIC WITH SECTOR BENCHMARKING:
@@ -30,46 +31,55 @@ export const analyzeStock = async (
   ${SECTOR_BENCHMARKS}
   
   STEPS:
-  1. **Classify Sector**: Identify which of the sectors in the table above best fits "${stockSymbol}". Use "General" or the closest match if exact fit isn't clear.
-  2. **Fetch Data**: Retrieve the CURRENT values for all 32 columns listed in the benchmark table for "${stockSymbol}" (e.g., Revenue Growth, ROE, P/E, Debt-to-Equity, etc.) from Screener.in or Moneycontrol.
-  3. **Compare & Score**: For each factor, compare the stock's actual value against the benchmark criteria for its sector.
-     - If it meets the criteria: PASS
-     - If it fails: FAIL
-     - If data is missing: N/A (Do not count towards total).
-  4. **Calculate Score**: Count the total number of "PASS" items out of 32 (or total available metrics).
+  1. **Classify Sector**: Identify which of the sectors in the table above best fits "${stockSymbol}".
+  2. **Fetch & Calculate**: Retrieve values for the columns. 
+     - *Hint*: For "Valuation Benchmark", compare the stock's P/E or EV/EBITDA to the benchmark range.
+     - *Hint*: For "Debt-to-EBITDA", if not found, divide Total Debt by EBITDA.
+  3. **Filter N/A**: Check the Benchmark value for the identified sector. 
+     - **CRITICAL**: If the benchmark for a specific factor is "N/A", "empty", or clearly not applicable (e.g., "Inventory Days" for Banks), **COMPLETELY REMOVE** that row from your analysis. Do not show it in the table.
+  4. **Compare**: Compare actuals vs benchmarks for the *remaining applicable factors*. (PASS / FAIL).
+  5. **Score**: Calculate the score as [Number of PASS] / [Total Number of APPLICABLE Factors].
+     - *Example*: If 5 factors are N/A, the denominator is 27, not 32.
+
+  VERDICT CRITERIA (STRICT RULE-BASED):
+  - **BUY**: If Score percentage is ≥ 70% (e.g., 20/28).
+    *Exception*: If "Valuation Benchmark" is FAIL (Overvalued), downgrade to HOLD.
+  - **HOLD**: If Score percentage is between 50% and 69%.
+  - **SELL**: If Score percentage is < 50%.
+
+  REQUIRED OUTPUT ORDER (To ensure accuracy):
+  1. **Sector Classification**
+  2. **Detailed Analysis Table** (Only show applicable factors)
+  3. **Fundamental Score** (Calculated based on the table above)
+  4. **Verdict & Insights**
   
-  REQUIRED OUTPUT FORMAT:
-  Start with the score and sector clearly.
+  FORMATTING:
   
-  ### 🏆 Fundamental Score: [X]/32
   **Sector Classification:** [Sector Name]
   
-  ### 📊 Detailed 32-Factor Analysis
-  (Create a Markdown table with these columns: **Factor**, **Actual Value**, **Benchmark**, **Status**)
+  ### 📊 Detailed Factor Analysis
   | Factor | Actual Value | Benchmark | Status |
   | :--- | :--- | :--- | :--- |
-  | Revenue Growth | ... | ... | ✅ PASS / ❌ FAIL |
-  | Operating Margin | ... | ... | ... |
-  ... (list all 32 factors)
+  | Revenue Growth | 12.5% | 8%+ | ✅ PASS |
+  | Operating Margin | 24% | ... | ✅ PASS |
+  ... (Only include rows where benchmark is applicable)
+  
+  ### 🏆 Fundamental Score: [Pass Count]/[Total Applicable Count]
   
   ### 📝 Verdict & Insights
   - **Strengths**: [Key passing metrics]
   - **Weaknesses**: [Key failing metrics]
-  - **Final Recommendation**: Buy/Sell/Hold based on the score and value investing principles.
+  - **Final Recommendation**: [Buy/Sell/Hold] (Based on strict criteria above)
   ` : `
   TECHNICAL ANALYSIS LOGIC WITH PATTERN RECOGNITION:
 
-  Below is the TECHNICAL ANALYSIS GUIDE that defines patterns and indicators you must check:
+  Below is the TECHNICAL ANALYSIS GUIDE:
   ${TECHNICAL_GUIDE}
 
   STEPS:
-  1. **Fetch Data**: Use Google Search to find the latest daily candle data (Open, High, Low, Close), current RSI (14), MACD status, 50-day SMA, 200-day SMA, and Volume for "${stockSymbol}".
-  2. **Apply Guide**: Compare the found data against the definitions in the GUIDE above.
-     - Check Moving Averages: Is Price > 50 SMA? Is 50 SMA > 200 SMA (Golden Cross)?
-     - Check Momentum: Is RSI > 70 (Overbought) or < 30 (Oversold)?
-     - Check Patterns: Do recent candles match "Hammer", "Engulfing", "Doji", etc.?
-     - Check Volume: Is there a breakout with high volume?
-  3. **Formulate Verdict**: Based on the matching patterns, determine the trend (Bullish/Bearish/Neutral).
+  1. **Fetch Data**: Get daily candle data, RSI(14), MACD, 50/200 SMA, and Volume.
+  2. **Apply Guide**: Check for Golden Cross, Overbought/Oversold, and Candlestick patterns.
+  3. **Formulate Verdict**: Bullish/Bearish/Neutral.
 
   REQUIRED OUTPUT FORMAT:
   Start with the verdict clearly.
@@ -78,7 +88,6 @@ export const analyzeStock = async (
   **Timeframe:** Short to Medium Term
 
   ### 📉 Key Indicators
-  (Create a table of found values)
   | Indicator | Value | Status/Interpretation |
   | :--- | :--- | :--- |
   | CMP (Price) | ... | ... |
@@ -88,10 +97,10 @@ export const analyzeStock = async (
   | MACD | ... | ... |
   
   ### 🕯️ Pattern & Trend Analysis
-  - **Moving Averages**: [Analysis based on Golden/Death cross or trend checks from Guide]
-  - **Candlestick Patterns**: [Mention any specific patterns from Guide found in recent price action]
-  - **Momentum**: [RSI and MACD interpretation based on Guide]
-  - **Volume**: [Volume analysis based on Guide]
+  - **Moving Averages**: [Analysis based on Golden/Death cross or trend checks]
+  - **Candlestick Patterns**: [Mention specific patterns found]
+  - **Momentum**: [RSI and MACD interpretation]
+  - **Volume**: [Volume analysis]
 
   ### 📝 Final Verdict
   - **Action**: [Buy/Sell/Wait]
@@ -99,20 +108,21 @@ export const analyzeStock = async (
   - **Resistance Levels**: [Price levels]
   `}
 
-  FORMATTING:
-  - Use clear Markdown formatting.
-  - Use emojis for visual appeal (✅, ❌, ⚠️, 🕯️, 📊).
-  - Use bolding (**) for key metrics.
+  FORMATTING RULES:
+  - Use clear Markdown.
+  - Use emojis (✅, ❌, ⚠️) in the table status.
+  - **ACCURACY CHECK**: The "Fundamental Score" MUST match the exact number of "✅ PASS" rows in the table. Count carefully.
   `;
 
   try {
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
-      contents: `Perform a deep ${isFundamental ? 'fundamental' : 'technical'} analysis of ${stockSymbol} (NSE) using the latest available data.`,
+      contents: `Perform a deep ${isFundamental ? 'fundamental' : 'technical'} analysis of ${stockSymbol} (NSE). Retrieve all required data points.`,
       config: {
         systemInstruction: systemInstruction,
         tools: [{ googleSearch: {} }],
-        thinkingConfig: { thinkingBudget: 0 } 
+        // Enable thinking to ensure the model plans the data fetching and counting correctly
+        thinkingConfig: { thinkingBudget: 4096 } 
       },
     });
 
